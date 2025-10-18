@@ -1,21 +1,23 @@
-# ===== STAGE 1: Build with Maven (JDK 25) =====
-FROM maven:3.9.11-eclipse-temurin-25 AS build
+# ===== STAGE 1: Build with Maven =====
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 
 WORKDIR /app
-
-# Cache deps
 COPY pom.xml .
 RUN mvn -B dependency:go-offline
 
-# Build
 COPY src ./src
 RUN mvn -B clean package -DskipTests
 
-# ===== STAGE 2: Run (JRE 25) =====
-FROM eclipse-temurin:25-jre
+
+# ===== STAGE 2: Run the built JAR =====
+FROM eclipse-temurin:21-jre
 
 WORKDIR /app
-COPY --from=build /app/target/*jar /app/app.jar
+
+# copy all jars then rename the final one
+COPY --from=build /app/target/*.jar /app/
+RUN mv /app/app.jar /app/app-run.jar
 
 EXPOSE 8080
-CMD ["java", "-jar", "app.jar"]
+
+CMD ["java", "-jar", "/app/app-run.jar"]
